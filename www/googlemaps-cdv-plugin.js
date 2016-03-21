@@ -1032,6 +1032,105 @@ App.prototype.addMarker = function(markerOptions, callback) {
     }, self.errorHandler, PLUGIN_NAME, 'exec', ['Marker.createMarker', markerOptions]);
 };
 
+/**
+ * Preloading images.
+ * This is a support method for loading multiple markers with images in URLs.
+ * @param {array} urls
+ * @param {function} callback
+ * @returns {undefined}
+ * @author André Tannús
+ */
+App.prototype.preloadImages = function(urls, callback) {
+	if( ! (Object.prototype.toString.call( urls ) === '[object Array]') ) {
+		throw 'Type error: preloadImages expects Array and was given ' + typeof(urls);
+	}
+	var self = this;
+    cordova.exec(function(results) {
+		if (typeof callback === "function") {
+			callback.call(self, results, self);
+		}
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Marker.preloadImages', urls]);
+}
+
+/**
+ * Adds multiple markers to the map with a single call.
+ * @param {type} markers
+ * @param {type} callback
+ * @returns {undefined}
+ * @author André Tannús
+ */
+App.prototype.addMarkers = function(markers, callback) {
+	// Loop array of options.
+	var allMarkers = [];
+	for( var i=0; i < markers.length; i++) {
+		var markerOptions = this.prepareMarkerOptions(markers[i]);
+		allMarkers.push(markerOptions);
+	}
+    var self = this;
+    cordova.exec(function(results) {
+		var createdMarkers = [];
+		for( var i=0; i < results.length; i++) {
+			var result = results[i];
+			var markerOptions = allMarkers[i];
+			markerOptions.hashCode = result.hashCode;
+			var marker = new Marker(self, result.id, markerOptions);
+
+			MARKERS[result.id] = marker;
+			OVERLAYS[result.id] = marker;
+			createdMarkers.push(marker);
+
+			if (typeof markerOptions.markerClick === "function") {
+				marker.on(plugin.google.maps.event.MARKER_CLICK, markerOptions.markerClick);
+			}
+			if (typeof markerOptions.infoClick === "function") {
+				marker.on(plugin.google.maps.event.INFO_CLICK, markerOptions.infoClick);
+			}
+		}
+		
+		// Fire callback with all the markers.
+		if (typeof callback === "function") {
+			callback.call(self, createdMarkers, self);
+		}
+		
+    }, self.errorHandler, PLUGIN_NAME, 'exec', ['Marker.createMarkers', allMarkers]);
+}
+
+/**
+ * Isolates code used to initialize marker options.
+ * This code was copy-pasted from the addMarker method.
+ * @param {type} markerOptions
+ * @returns {unresolved}
+ * @author André Tannús
+ * @private
+ */
+App.prototype.prepareMarkerOptions = function(markerOptions) {
+    markerOptions.animation = markerOptions.animation || undefined;
+    markerOptions.position = markerOptions.position || {};
+    markerOptions.position.lat = markerOptions.position.lat || 0.0;
+    markerOptions.position.lng = markerOptions.position.lng || 0.0;
+    markerOptions.anchor = markerOptions.anchor || [0.5, 0.5];
+    markerOptions.draggable = markerOptions.draggable || false;
+    markerOptions.icon = markerOptions.icon || undefined;
+    markerOptions.snippet = markerOptions.snippet || undefined;
+    markerOptions.title = markerOptions.title !== undefined ? String(markerOptions.title) : undefined;
+    markerOptions.visible = markerOptions.visible === undefined ? true : markerOptions.visible;
+    markerOptions.flat = markerOptions.flat || false;
+    markerOptions.rotation = markerOptions.rotation || 0;
+    markerOptions.opacity = parseFloat("" + markerOptions.opacity, 10) || 1;
+    markerOptions.disableAutoPan = markerOptions.disableAutoPan === undefined ? false : markerOptions.disableAutoPan;
+    markerOptions.params = markerOptions.params || {};
+    if ("styles" in markerOptions) {
+        markerOptions.styles = typeof markerOptions.styles === "object" ? markerOptions.styles : {};
+
+        if ("color" in markerOptions.styles) {
+            markerOptions.styles.color = HTMLColor2RGBA(markerOptions.styles.color || "#000000");
+        }
+    }
+    if (markerOptions.icon && isHTMLColorString(markerOptions.icon)) {
+        markerOptions.icon = HTMLColor2RGBA(markerOptions.icon);
+    }
+	return markerOptions;
+}
 
 //-------------
 // Circle
