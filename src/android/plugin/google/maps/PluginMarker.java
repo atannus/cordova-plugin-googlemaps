@@ -1064,12 +1064,10 @@ public class PluginMarker extends MyPlugin {
 
     // Grab the iconUrl. We need to figure out how to handle it.
     String iconUrl = iconProperty.getString("url");
-
-    // Not a URL, not an absolute path, doesn't start with www.
-    // Use as relative path.
     if (iconUrl.indexOf("://") == -1 &&
-            iconUrl.startsWith("/") == false &&
-            iconUrl.startsWith("www/") == false) {
+        iconUrl.startsWith("/") == false && 
+        iconUrl.startsWith("www/") == false &&
+        iconUrl.startsWith("data:image") == false) {
       iconUrl = "./" + iconUrl;
     }
 
